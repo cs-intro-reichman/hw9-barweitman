@@ -59,49 +59,44 @@ public class MemorySpace {
 	 */
 	public int malloc(int length) {
         if (length <= 0) {
-            return -1; // Invalid allocation size
+            return -1; // Invalid request
         }
 
         Node currentNode = freeList.getFirst();
-
         while (currentNode != null) {
             MemoryBlock freeBlock = currentNode.block;
 
             if (freeBlock.length >= length) {
-                // Allocate memory from the free block
                 MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
                 allocatedList.addLast(allocatedBlock);
 
-                // Update or remove the free block
                 if (freeBlock.length == length) {
-                    freeList.remove(currentNode.block); // Exact fit: remove the block
+                    freeList.remove(currentNode.block);
                 } else {
                     freeBlock.baseAddress += length;
                     freeBlock.length -= length;
                 }
+
                 return allocatedBlock.baseAddress;
             }
 
             currentNode = currentNode.next;
         }
-        // If no suitable block is found, return -1
+        System.out.println("Error: Not enough memory to allocate " + length + " words");
         return -1;
     }
 
-
-	/**
-	 * Frees the memory block whose base address equals the given address.
-	 * This implementation deletes the block whose base address equals the given 
-	 * address from the allocatedList, and adds it at the end of the free list. 
-	 * 
-	 * @param baseAddress
-	 *            the starting address of the block to freeList
-	 */
-	public void free(int address) {
+    /**
+     * Frees the memory block whose base address matches the given address.
+     *
+     * @param address The base address of the block to free.
+     */
+    public void free(int address) {
         Node currentNode = allocatedList.getFirst();
 
         while (currentNode != null) {
             MemoryBlock allocatedBlock = currentNode.block;
+
             if (allocatedBlock.baseAddress == address) {
                 allocatedList.remove(currentNode.block);
                 freeList.addLast(allocatedBlock);
@@ -114,46 +109,27 @@ public class MemorySpace {
         System.out.println("Error: Invalid address to free");
     }
 
-	
-	/**
-	 * A textual representation of the free list and the allocated list of this memory space, 
-	 * for debugging purposes.
-	 */
-	public String toString() {
-		return freeList.toString() + "\n" + allocatedList.toString();		
-	}
-	
-	/**
-	 * Performs defragmantation of this memory space.
-	 * Normally, called by malloc, when it fails to find a memory block of the requested size.
-	 * In this implementation Malloc does not call defrag.
-	 */
-	public void defrag() {
+    /**
+     * Performs defragmentation of the free list by merging adjacent memory blocks.
+     */
+    public void defrag() {
         if (freeList.getSize() <= 1) {
-            return; // Nothing to defragment if 0 or 1 block
+            return; 
         }
+        freeList = sortFreeListByBaseAddress();
 
-        // Sort the freeList by base address
-        LinkedList sortedFreeList = sortFreeListByBaseAddress();
-
-        LinkedList mergedList = new LinkedList();
-        Node currentNode = sortedFreeList.getFirst();
-
-        while (currentNode != null) {
+        Node currentNode = freeList.getFirst();
+        while (currentNode != null && currentNode.next != null) {
             MemoryBlock currentBlock = currentNode.block;
-            Node nextNode = currentNode.next;
+            MemoryBlock nextBlock = currentNode.next.block;
 
-            while (nextNode != null && currentBlock.baseAddress + currentBlock.length == nextNode.block.baseAddress) {
-                // Merge adjacent blocks
-                currentBlock.length += nextNode.block.length;
-                nextNode = nextNode.next;
+            if (currentBlock.baseAddress + currentBlock.length == nextBlock.baseAddress) {
+                currentBlock.length += nextBlock.length;
+                freeList.remove(nextBlock);
+            } else {
+                currentNode = currentNode.next;
             }
-
-            mergedList.addLast(currentBlock);
-            currentNode = nextNode;
         }
-
-        freeList = mergedList; // Update the free list
     }
 
     /**
@@ -161,13 +137,12 @@ public class MemorySpace {
      *
      * @return A sorted LinkedList of free memory blocks.
      */
-	private LinkedList sortFreeListByBaseAddress() {
+    private LinkedList sortFreeListByBaseAddress() {
         LinkedList sortedList = new LinkedList();
         Node currentNode = freeList.getFirst();
 
         while (currentNode != null) {
             MemoryBlock currentBlock = currentNode.block;
-
             Node sortedNode = sortedList.getFirst();
             int index = 0;
 
@@ -182,5 +157,12 @@ public class MemorySpace {
 
         return sortedList;
     }
-}
 
+    /**
+     * A textual representation of the memory space, for debugging.
+     */
+    @Override
+    public String toString() {
+        return "Free List:\n" + freeList.toString() + "\nAllocated List:\n" + allocatedList.toString();
+    }
+}

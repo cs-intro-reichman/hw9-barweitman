@@ -3,9 +3,9 @@
  */
 public class LinkedList {
 
-    private Node first; // Pointer to the first element of this list
-    private Node last;  // Pointer to the last element of this list
-    private int size;   // Number of elements in this list
+    private Node first;
+    private Node last;
+    private int size;
 
     public LinkedList() {
         first = null;
@@ -27,7 +27,8 @@ public class LinkedList {
 
     public Node getNode(int index) {
         if (index < 0 || index >= size) {
-            return null; // Return null for invalid index
+            System.out.println("Error: index must be between 0 and size");
+            return null;
         }
         Node current = first;
         for (int i = 0; i < index; i++) {
@@ -38,35 +39,44 @@ public class LinkedList {
 
     public void add(int index, MemoryBlock block) {
         if (index < 0 || index > size) {
-            return; // Do nothing for invalid index
+            System.out.println("Error: index must be between 0 and size");
+            return;
         }
         Node newNode = new Node(block);
         if (index == 0) {
             newNode.next = first;
             first = newNode;
-            if (size == 0) last = newNode;
+            if (size == 0) {
+                last = newNode;
+            }
         } else if (index == size) {
             last.next = newNode;
             last = newNode;
         } else {
-            Node previous = getNode(index - 1);
-            newNode.next = previous.next;
-            previous.next = newNode;
+            Node prevNode = getNode(index - 1);
+            if (prevNode != null) {
+                newNode.next = prevNode.next;
+                prevNode.next = newNode;
+            }
         }
         size++;
-    }
-
-    public void addLast(MemoryBlock block) {
-        add(size, block);
     }
 
     public void addFirst(MemoryBlock block) {
         add(0, block);
     }
 
+    public void addLast(MemoryBlock block) {
+        add(size, block);
+    }
+
     public MemoryBlock getBlock(int index) {
         Node node = getNode(index);
-        return node != null ? node.block : null; // Return null if node is not found
+        if (node == null) {
+            System.out.println("Error: Cannot retrieve block at index " + index);
+            return null;
+        }
+        return node.block;
     }
 
     public int indexOf(MemoryBlock block) {
@@ -79,71 +89,84 @@ public class LinkedList {
             current = current.next;
             index++;
         }
-        return -1; // Return -1 if not found
+        System.out.println("Error: Block not found in the list");
+        return -1;
     }
 
     public void remove(Node node) {
-        if (first == null || node == null) return; // Do nothing if the list is empty or node is null
-        if (first == node) {
+        if (node == null) {
+            System.out.println("Error: Cannot remove a null node");
+            return;
+        }
+        if (first == null) {
+            System.out.println("Error: List is empty");
+            return;
+        }
+        if (node == first) {
             first = first.next;
-            if (first == null) last = null;
+            if (first == null) {
+                last = null;
+            }
         } else {
             Node current = first;
             while (current.next != null && current.next != node) {
                 current = current.next;
             }
             if (current.next == node) {
-                current.next = current.next.next;
-                if (current.next == null) last = current;
+                current.next = node.next;
+                if (node.next == null) {
+                    last = current;
+                }
+            } else {
+                System.out.println("Error: Node not found in the list");
             }
-        }
-        size--;
-    }
-
-    public void remove(int index) {
-        if (index < 0 || index >= size) return; // Do nothing for invalid index
-        if (index == 0) {
-            first = first.next;
-            if (first == null) last = null;
-        } else {
-            Node previous = getNode(index - 1);
-            Node toRemove = previous.next;
-            previous.next = toRemove.next;
-            if (toRemove == last) last = previous;
         }
         size--;
     }
 
     public void remove(MemoryBlock block) {
-        Node current = first, previous = null;
+        if (block == null) {
+            System.out.println("Error: Cannot remove a null block");
+            return;
+        }
+        if (first == null) {
+            System.out.println("Error: List is empty");
+            return;
+        }
+        Node current = first;
+        Node prev = null;
         while (current != null) {
             if (current.block.equals(block)) {
-                if (previous == null) {
+                if (prev == null) {
                     first = current.next;
-                    if (first == null) last = null;
                 } else {
-                    previous.next = current.next;
-                    if (current == last) last = previous;
+                    prev.next = current.next;
+                }
+                if (current.next == null) {
+                    last = prev;
                 }
                 size--;
                 return;
             }
-            previous = current;
+            prev = current;
             current = current.next;
         }
+        System.out.println("Error: Block not found in the list");
     }
 
-    public ListIterator iterator() {
-        return new ListIterator(first);
-    }
-
+    @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder result = new StringBuilder();
         Node current = first;
         while (current != null) {
-            sb.append(current.toString()).append(" -> ");
+            result.append(current.block.toString());
+            if (current.next != null) {
+                result.append(" -> ");
+            }
             current = current.next;
         }
-        return sb.toString();
+        return result.toString();
     }
 }
+
+

@@ -58,111 +58,98 @@ public class MemorySpace {
 	 * @return the base address of the allocated block, or -1 if unable to allocate
 	 */
 	public int malloc(int length) {
-        if (length <= 0) {
-            return -1; // Invalid request
-        }
-
-        Node currentNode = freeList.getFirst();
-        while (currentNode != null) {
-            MemoryBlock freeBlock = currentNode.block;
-
-            if (freeBlock.length >= length) {
-                MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
-                allocatedList.addLast(allocatedBlock);
-
-                if (freeBlock.length == length) {
-                    freeList.remove(currentNode.block);
-                } else {
-                    freeBlock.baseAddress += length;
-                    freeBlock.length -= length;
-                }
-
-                return allocatedBlock.baseAddress;
-            }
-
-            currentNode = currentNode.next;
-        }
-        System.out.println("Error: Not enough memory to allocate " + length + " words");
-        return -1;
-    }
-
+		if (length <= 0) {
+			System.out.println("Error: Requested length must be greater than 0");
+			return -1;
+		}
+		Node currentNode = freeList.getFirst();
+		while (currentNode != null) {
+			MemoryBlock freeBlock = currentNode.block;
+			if (freeBlock.length >= length) {
+				int allocatedBaseAddress = freeBlock.baseAddress;
+				MemoryBlock allocatedBlock = new MemoryBlock(allocatedBaseAddress, length);
+				allocatedList.addLast(allocatedBlock);
+	
+				if (freeBlock.length == length) {
+					freeList.remove(currentNode.block);
+				} else {
+					freeBlock.baseAddress += length;
+					freeBlock.length -= length;
+				}
+				return allocatedBaseAddress;
+			}
+			currentNode = currentNode.next;
+		}
+		System.out.println("Error: Not enough memory to allocate " + length + " words");
+		return -1;
+	}
     /**
      * Frees the memory block whose base address matches the given address.
      *
      * @param address The base address of the block to free.
      */
     public void free(int address) {
-        Node currentNode = allocatedList.getFirst();
-
-        while (currentNode != null) {
-            MemoryBlock allocatedBlock = currentNode.block;
-
-            if (allocatedBlock.baseAddress == address) {
-                allocatedList.remove(currentNode.block);
-                freeList.addLast(allocatedBlock);
-                defrag(); 
-                return;
-            }
-
-            currentNode = currentNode.next;
-        }
-        System.out.println("Error: Invalid address to free");
-    }
-
+		if (allocatedList.getSize() == 0) {
+			System.out.println("Error: No allocated blocks to free");
+			return;
+		}
+		Node currentNode = allocatedList.getFirst();
+		while (currentNode != null) {
+			MemoryBlock allocatedBlock = currentNode.block;
+			if (allocatedBlock.baseAddress == address) {
+				allocatedList.remove(currentNode.block);
+				freeList.addLast(allocatedBlock);
+				defrag();
+				System.out.println("Successfully freed memory block at address " + address);
+				return;
+			}
+			currentNode = currentNode.next;
+		}
+		System.out.println("Error: Invalid address to free");
+	}
     /**
      * Performs defragmentation of the free list by merging adjacent memory blocks.
      */
-    public void defrag() {
-        if (freeList.getSize() <= 1) {
-            return; 
-        }
-        freeList = sortFreeListByBaseAddress();
+	public void defrag() {
+		if (freeList.getSize() <= 1) {
+			return; 
+		}
+		freeList = sortFreeListByBaseAddress();
+		Node currentNode = freeList.getFirst();
+		while (currentNode != null && currentNode.next != null) {
+			MemoryBlock currentBlock = currentNode.block;
+			MemoryBlock nextBlock = currentNode.next.block;
+			if (currentBlock.baseAddress + currentBlock.length == nextBlock.baseAddress) {
+				currentBlock.length += nextBlock.length;
+				freeList.remove(nextBlock);
+			} else {
+				currentNode = currentNode.next; 
+			}
+		}
+	}
+	
+	/**
+	 * Sorts the free list by base address in ascending order.
+	 * @return A sorted LinkedList.
+	 */
+	private LinkedList sortFreeListByBaseAddress() {
+		LinkedList sortedList = new LinkedList();
+		Node currentNode = freeList.getFirst();
+	
+		while (currentNode != null) {
+			MemoryBlock currentBlock = currentNode.block;
+			Node sortedNode = sortedList.getFirst();
+			int index = 0;
+	
+			while (sortedNode != null && currentBlock.baseAddress >= sortedNode.block.baseAddress) {
+				sortedNode = sortedNode.next;
+				index++;
+			}
 
-        Node currentNode = freeList.getFirst();
-        while (currentNode != null && currentNode.next != null) {
-            MemoryBlock currentBlock = currentNode.block;
-            MemoryBlock nextBlock = currentNode.next.block;
-
-            if (currentBlock.baseAddress + currentBlock.length == nextBlock.baseAddress) {
-                currentBlock.length += nextBlock.length;
-                freeList.remove(nextBlock);
-            } else {
-                currentNode = currentNode.next;
-            }
-        }
-    }
-
-    /**
-     * Sorts the free list by base address (ascending order).
-     *
-     * @return A sorted LinkedList of free memory blocks.
-     */
-    private LinkedList sortFreeListByBaseAddress() {
-        LinkedList sortedList = new LinkedList();
-        Node currentNode = freeList.getFirst();
-
-        while (currentNode != null) {
-            MemoryBlock currentBlock = currentNode.block;
-            Node sortedNode = sortedList.getFirst();
-            int index = 0;
-
-            while (sortedNode != null && currentBlock.baseAddress >= sortedNode.block.baseAddress) {
-                sortedNode = sortedNode.next;
-                index++;
-            }
-
-            sortedList.add(index, currentBlock);
-            currentNode = currentNode.next;
-        }
-
-        return sortedList;
-    }
-
-    /**
-     * A textual representation of the memory space, for debugging.
-     */
-    @Override
-    public String toString() {
-        return "Free List:\n" + freeList.toString() + "\nAllocated List:\n" + allocatedList.toString();
-    }
+			sortedList.add(index, currentBlock); 
+			currentNode = currentNode.next; 
+		}
+	
+		return sortedList;
+	}
 }

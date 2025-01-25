@@ -127,23 +127,23 @@ public void free(int baseAddress) {
      * Performs defragmentation of the free list by merging adjacent memory blocks.
      */
 	
-	public void defrag() {
-    if (freeList.getSize() <= 1) {
-        return; 
-    }
-    freeList = sortFreeListByBaseAddress();
-    Node currentNode = freeList.getFirst();
-    while (currentNode != null && currentNode.next != null) {
-        MemoryBlock currentBlock = currentNode.block;
-        MemoryBlock nextBlock = currentNode.next.block;
-        if (currentBlock.baseAddress + currentBlock.length == nextBlock.baseAddress) {
-            currentBlock.length += nextBlock.length;
-            freeList.remove(nextBlock);
-        } else {
-            currentNode = currentNode.next; 
-        }
-    }
-}
+	 public void defrag() {
+		if (freeList.getSize() <= 1) {
+			return; 
+		}
+		freeList = sortFreeListByBaseAddress();
+		Node current = freeList.getFirst();
+		while (current != null && current.next != null) {
+			MemoryBlock currentBlock = current.block;
+			MemoryBlock nextBlock = current.next.block;
+			if (currentBlock.baseAddress + currentBlock.length == nextBlock.baseAddress) {
+				currentBlock.length += nextBlock.length;
+				freeList.remove(current.next);
+			} else {
+				current = current.next;
+			}
+		}
+	}
 	
 	/**
 	 * Sorts the free list by base address in ascending order.
@@ -152,21 +152,18 @@ public void free(int baseAddress) {
 	private LinkedList sortFreeListByBaseAddress() {
 		LinkedList sortedList = new LinkedList();
 		Node currentNode = freeList.getFirst();
-	
 		while (currentNode != null) {
 			MemoryBlock currentBlock = currentNode.block;
 			Node sortedNode = sortedList.getFirst();
 			int index = 0;
 	
-			while (sortedNode != null && currentBlock.baseAddress >= sortedNode.block.baseAddress) {
+			while (sortedNode != null && currentBlock.baseAddress > sortedNode.block.baseAddress) {
 				sortedNode = sortedNode.next;
 				index++;
 			}
-
-			sortedList.add(index, currentBlock); 
-			currentNode = currentNode.next; 
+			sortedList.add(index, currentBlock);
+			currentNode = currentNode.next;
 		}
-	
 		return sortedList;
 	}
 }

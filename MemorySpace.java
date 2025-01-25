@@ -58,30 +58,27 @@ public class MemorySpace {
 	 * @return the base address of the allocated block, or -1 if unable to allocate
 	 */
 	public int malloc(int length) {
-        Node current = freeList.getFirst();
-        while (current != null) {
-            MemoryBlock freeBlock = current.block;
+        ListIterator iterator = freeList.iterator();
+        while (iterator.hasNext()) {
+            MemoryBlock freeBlock = iterator.next();
             if (freeBlock.length >= length) {
-                int baseAddress = freeBlock.baseAddress;
+                // Create the new allocated block
+                MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
+                allocatedList.addLast(allocatedBlock);
 
-                // Allocate memory
-                allocatedList.addLast(new MemoryBlock(baseAddress, length));
-
-                // Adjust the free block
-                freeBlock.baseAddress += length;
-                freeBlock.length -= length;
-
-                // Remove the block if it's fully allocated
-                if (freeBlock.length == 0) {
-                    freeList.remove(current);
+                // Update the free block
+                if (freeBlock.length == length) {
+                    freeList.remove(freeBlock); // Exact fit: remove the free block
+                } else {
+                    freeBlock.baseAddress += length;
+                    freeBlock.length -= length;
                 }
-                return baseAddress;
+                return allocatedBlock.baseAddress;
             }
-            current = current.next;
         }
-        System.out.println("Error: Not enough memory to allocate " + length + " words");
-        return -1; // Not enough memory
-	}
+        // If no suitable block is found
+        return -1;
+    }
 
 	/**
 	 * Frees the memory block whose base address equals the given address.
@@ -92,16 +89,17 @@ public class MemorySpace {
 	 *            the starting address of the block to freeList
 	 */
 	public void free(int address) {
-        Node current = allocatedList.getFirst();
-        while (current != null) {
-            MemoryBlock allocatedBlock = current.block;
+        ListIterator iterator = allocatedList.iterator();
+        while (iterator.hasNext()) {
+            MemoryBlock allocatedBlock = iterator.next();
             if (allocatedBlock.baseAddress == address) {
-                freeList.addLast(allocatedBlock); // Add to freeList
-                allocatedList.remove(current);    // Remove from allocatedList
+                // Remove the block from allocatedList and add it to freeList
+                allocatedList.remove(allocatedBlock);
+                freeList.addLast(allocatedBlock);
                 return;
             }
-            current = current.next;
         }
+        // Address not found
         System.out.println("Error: Invalid address to free");
     }
 	
